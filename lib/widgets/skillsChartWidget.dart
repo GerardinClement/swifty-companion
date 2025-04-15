@@ -19,7 +19,7 @@ class SkillsChart extends StatelessWidget {
         ? cursus.skills.sublist(0, 10)
         : cursus.skills;
 
-    return Column(
+    return cursus.skills.length >= 3 ? Column(
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(
@@ -75,7 +75,7 @@ class SkillsChart extends StatelessWidget {
               ),
               dataSets: [
                 RadarDataSet(
-                  fillColor: Colors.blue.withOpacity(0.2),
+                  fillColor: Colors.blue.withValues(alpha: 0.4),
                   borderColor: Colors.blue,
                   entryRadius: 5,
                   borderWidth: 2.0,
@@ -89,11 +89,11 @@ class SkillsChart extends StatelessWidget {
                 fontSize: 10,
               ),
               tickBorderData: BorderSide(
-                color: Colors.grey.withOpacity(0.2),
+                color: Colors.grey.withValues(alpha: 0.3),
                 width: 1,
               ),
               gridBorderData: BorderSide(
-                color: Colors.grey.withOpacity(0.3),
+                color: Colors.grey.withValues(alpha: 0.3),
                 width: 1,
               ),
               titlePositionPercentageOffset: 0.2,
@@ -125,7 +125,7 @@ class SkillsChart extends StatelessWidget {
                 vertical: 6.0,
               ),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
+                color: Colors.blue.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.blue.shade200),
               ),
@@ -141,7 +141,17 @@ class SkillsChart extends StatelessWidget {
               .toList(),
         ),
       ],
-    );
+    ):
+    const Center(
+      child: Text(
+        'Not enough skills to display',
+        style: TextStyle(
+          fontSize: 16,
+          color: Colors.grey,
+        ),
+      ),
+    )
+    ;
   }
 
 }

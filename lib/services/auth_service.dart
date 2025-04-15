@@ -7,10 +7,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 
 class AuthService {
-  final String baseUrl = 'https://api.intra.42.fr';
+  final String baseUrl = dotenv.env['BASE_URL'] ?? "https://api.intra.42.fr";
   final String? uid = dotenv.env['UID'];
   final String? secretKey = dotenv.env['SECRET_KEY'];
   final Uri redirectUrl = Uri.parse('swiftycompanion://oauth-callback');
+  final Uri tokenEndpoint = Uri.parse('${dotenv.env['BASE_URL']}/oauth/token');
 
 
   final AppLinks _appLinks = AppLinks();
@@ -22,7 +23,7 @@ class AuthService {
       _grant = oauth2.AuthorizationCodeGrant(
         uid!,
         Uri.parse("$baseUrl/oauth/authorize"),
-        Uri.parse("$baseUrl/oauth/token"),
+        tokenEndpoint,
         secret: secretKey,
       );
 
@@ -31,6 +32,15 @@ class AuthService {
       await _listenForRedirect(onSuccess, onError);
 
       await launchUrl(authUrl, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      onError(e);
+    }
+  }
+
+  Future<void> refreshToken(oauth2.Client client, Function(oauth2.Client) onSuccess, Function(dynamic error) onError) async {
+    try {
+      final oauth2.Client newClient = await client.refreshCredentials();
+      onSuccess(newClient);
     } catch (e) {
       onError(e);
     }
@@ -79,17 +89,25 @@ class AuthService {
     final expirationString = prefs.getString('expiration');
     final DateTime? expiration = expirationString != null ? DateTime.parse(expirationString) : null;
 
-    if (expiration != null && expiration.isBefore(DateTime.now())) {
-      return null;
-    }
     if (accessToken != null) {
       return oauth2.Client(
-        oauth2.Credentials(accessToken, refreshToken: refreshToken, expiration: expiration),
+        oauth2.Credentials(
+            accessToken,
+            refreshToken: refreshToken,
+            expiration: expiration,
+            tokenEndpoint: tokenEndpoint,
+        ),
         identifier: uid,
         secret: secretKey,
       );
     }
     return null;
+  }
+
+  Future<oauth2.Client> refreshCredentials(oauth2.Client client) async  {
+    final newClient = await client.refreshCredentials();
+    await saveCredentials(newClient);
+    return newClient;
   }
 
   Future<void> clearCredentials() async {

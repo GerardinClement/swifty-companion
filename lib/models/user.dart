@@ -11,6 +11,7 @@ class User {
   final String location;
   final double wallet;
   final double correction_points;
+  final String kind;
   List<Project> projects;
   List<Cursus> cursusUsers;
 
@@ -27,6 +28,7 @@ class User {
     required this.location,
     required this.wallet,
     required this.correction_points,
+    required this.kind,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -52,6 +54,7 @@ class User {
       correction_points: json['correction_point'] != null
           ? json['correction_point'].toDouble()
           : 0.0,
+      kind: json['kind']?.toString() ?? "Unknown",
     );
   }
 }

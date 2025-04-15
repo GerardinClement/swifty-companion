@@ -7,10 +7,8 @@ import 'dart:async';
 
 class SearchPage extends StatefulWidget {
   final oauth2.Client client;
-  const SearchPage({
-    super.key,
-    required this.client,
-  });
+
+  const SearchPage({super.key, required this.client});
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -18,9 +16,10 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
-  final bool _isLoading = false;
+  bool isLoading = false;
   late List<User> _searchResults = [];
   late ApiService _apiService;
+  int queryId = 0;
   Timer? _debounceTimer;
 
   @override
@@ -45,33 +44,42 @@ class _SearchPageState extends State<SearchPage> {
       return;
     }
 
-    // Annule le timer précédent s'il existe
     _debounceTimer?.cancel();
 
-    // Crée un nouveau timer qui attendra 500ms avant d'exécuter la recherche
     _debounceTimer = Timer(const Duration(milliseconds: 500), () {
-      _searchUsers();
+      queryId++;
+      _searchUsers(queryId);
     });
   }
 
-  Future<void> _searchUsers() async {
+  Future<void> _searchUsers(int searchQueryId) async {
     try {
       final result = await _apiService.fetchUsers(_searchController.text);
       setState(() {
-        _searchResults = result;
+        if (queryId == searchQueryId) _searchResults = result;
       });
     } catch (e) {
-      // Handle error
-      print("Error searching users: $e");
+      setState(() {
+        _searchResults = [];
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error fetching users: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Search'),
-      ),
+      appBar: AppBar(title: const Text('Search')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -83,47 +91,54 @@ class _SearchPageState extends State<SearchPage> {
                 border: OutlineInputBorder(),
               ),
               onChanged: (value) {
-                if (value.isNotEmpty) {
-                  _searchUsers();
-                } else {
-                  setState(() {
-                    _searchResults.clear();
-                  });
-                }
+                _onSearchChanged();
               },
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ListView.builder(
-                      itemCount: _searchResults.length,
-                      itemBuilder: (context, index) {
-                        final user = _searchResults[index];
-                        return InkWell(
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundImage: NetworkImage(user.profilePictureUrl),
-                            ),
-                            title: Text(user.username),
-                            subtitle: Text(user.email),
-                          ),
-                          onTap: () {
-                            // Handle user tap
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => ProfilePage(client: widget.client, user: user),
+              child:
+                isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _searchResults.isEmpty
+                      ? const Center(
+                        child: Text(
+                          'No results found',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                      )
+                      : ListView.builder(
+                        itemCount: _searchResults.length,
+                        itemBuilder: (context, index) {
+                          final user = _searchResults[index];
+                          return InkWell(
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundImage: NetworkImage(
+                                  user.profilePictureUrl,
+                                ),
                               ),
-                            );
-                          },
-                        );
-                      },
-                    ),
+                              title: Text(user.username),
+                              subtitle: Text(user.email),
+                            ),
+                            onTap: () {
+                              // Handle user tap
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => ProfilePage(
+                                        client: widget.client,
+                                        user: user,
+                                      ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
             ),
           ],
         ),
       ),
     );
   }
-
 }

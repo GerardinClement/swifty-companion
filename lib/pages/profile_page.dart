@@ -5,7 +5,6 @@ import 'package:swifty_companion/services/auth_service.dart';
 import 'package:swifty_companion/models/user.dart';
 import 'package:swifty_companion/models/skill.dart';
 import 'package:swifty_companion/models/cursus.dart';
-import 'package:swifty_companion/models/project.dart';
 import 'package:swifty_companion/app.dart';
 import 'package:swifty_companion/widgets/skillsChartWidget.dart';
 
@@ -56,8 +55,14 @@ class _ProfilePageState extends State<ProfilePage> {
         setPageTitle();
       });
     } catch (e) {
-      // Handle error
-      print("Error fetching user info: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error fetching user info: $e"),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+      logout();
     }
   }
 
@@ -106,6 +111,16 @@ class _ProfilePageState extends State<ProfilePage> {
     return [];
   }
 
+  Future<void> logout() async {
+    await authService.clearCredentials();
+    if (context.mounted) {
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const App()),
+        (route) => false,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -116,13 +131,7 @@ class _ProfilePageState extends State<ProfilePage> {
             IconButton(
               icon: const Icon(Icons.logout),
               onPressed: () async {
-                await authService.clearCredentials();
-                if (context.mounted) {
-                  Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (context) => const App()),
-                    (route) => false,
-                  );
-                }
+                await logout();
               },
             ),
         ],
@@ -146,10 +155,31 @@ class _ProfilePageState extends State<ProfilePage> {
                       Center(
                         child: Column(
                           children: [
-                            Text(
-                              user.username,
-                              style: Theme.of(context).textTheme.headlineSmall,
-                              textAlign: TextAlign.center,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  user.username,
+                                  style:
+                                      Theme.of(context).textTheme.headlineSmall,
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color:
+                                        user.kind == "admin"
+                                            ? Colors.red.shade100
+                                            : Colors.blue,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  child: Text(user.kind),
+                                ),
+                              ],
                             ),
                             Text(
                               "${user.firstName} ${user.lastName}",
@@ -193,27 +223,36 @@ class _ProfilePageState extends State<ProfilePage> {
                       const SizedBox(height: 24),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           const Text(
                             'Cursus: ',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 8),
-                          DropdownButton<double>(
-                            value: selectedCursusId,
-                            hint: const Text('Sélectionner un cursus'),
-                            onChanged: (double? newValue) {
-                              onChangedCursus(newValue);
-                            },
-                            items:
-                                user.cursusUsers.map<DropdownMenuItem<double>>((
-                                  Cursus value,
-                                ) {
-                                  return DropdownMenuItem<double>(
-                                    value: value.id.toDouble(),
-                                    child: Text(value.name),
-                                  );
-                                }).toList(),
+                          Expanded(
+                            child: DropdownButton<double>(
+                              value: selectedCursusId,
+                              hint: const Text('Select Cursus'),
+                              isExpanded: true,
+                              onChanged: (double? newValue) {
+                                onChangedCursus(newValue);
+                              },
+                              items:
+                                  user.cursusUsers
+                                      .map<DropdownMenuItem<double>>((
+                                        Cursus value,
+                                      ) {
+                                        return DropdownMenuItem<double>(
+                                          value: value.id.toDouble(),
+                                          child: Text(
+                                            value.name,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        );
+                                      })
+                                      .toList(),
+                            ),
                           ),
                         ],
                       ),

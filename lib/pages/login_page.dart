@@ -29,7 +29,6 @@ class _LoginPageState extends State<LoginPage> {
   void listenForRedirect(Function(Uri) onRedirect) {
     _sub = appLinks.uriLinkStream.listen((Uri uri) {
       if (uri.scheme == 'swiftycompanion') {
-        print("✅ Reçu redirection : $uri");
         onRedirect(uri);
       }
     });
@@ -58,13 +57,21 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _login() async {
     try {
-      final client = await apiService.authenticate(
+      await apiService.authenticate(
         (client) => _onSuccess(client),
         (msg) => _onError(msg),
       );
     } catch (e) {
-      print('Error during login: $e');
-      // Handle error (e.g., show a dialog or a snackbar)
+      // Handle any errors that occur during the authentication process
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } finally {
+      disposeRedirectListener();
     }
   }
 

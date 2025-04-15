@@ -63,6 +63,9 @@ class AppState extends State<App> {
 
     try {
       client = await authService.loadCredentials();
+      if (client != null) {
+        client = await authService.refreshCredentials(client!);
+      }
 
       if (client != null) {
         initTabs();
@@ -71,7 +74,13 @@ class AppState extends State<App> {
         });
       }
     } catch (e) {
-      print('Erreur lors de la vérification du statut: $e');
+      await authService.clearCredentials();
+      if (context.mounted) {
+        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const App()),
+              (route) => false,
+        );
+      }
     } finally {
       setState(() {
         isLoading = false;
