@@ -302,6 +302,12 @@ class _ProfilePageState extends State<ProfilePage> {
                                       color: Colors.green,
                                       size: 16,
                                     ),
+                                  if (user.projects[index].finalMark == "0")
+                                    const Icon(
+                                      Icons.close,
+                                      color: Colors.red,
+                                      size: 16,
+                                    ),
                                 ],
                               ),
                             ),
